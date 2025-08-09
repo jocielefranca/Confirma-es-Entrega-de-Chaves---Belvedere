@@ -364,8 +364,7 @@
                 Para garantir um processo de entrega de chaves ágil e organizado, pedimos a sua colaboração no preenchimento deste formulário. Suas informações nos ajudarão a preparar tudo da melhor forma possível para o grande dia! 🏠✨
             </div>
 
-            <!-- Formulário que envia para Formspree -->
-            <form id="keyDeliveryForm" action="https://formspree.io/f/xdkdyejp" method="POST">
+            <form id="keyDeliveryForm">
                 <div class="section">
                     <h3>Informações Pessoais</h3>
                     
@@ -402,12 +401,12 @@
                     
                     <div class="radio-group">
                         <label class="radio-item">
-                            <input type="radio" name="horario" value="08:00h às 10:00h (Período da Manhã)" required>
+                            <input type="radio" name="horario" value="manha" required>
                             <span>🌅 08:00h às 10:00h (Período da Manhã)</span>
                         </label>
                         
                         <label class="radio-item">
-                            <input type="radio" name="horario" value="10:00h às 12:00h (Meio da Manhã)" required>
+                            <input type="radio" name="horario" value="meio-dia" required>
                             <span>☀️ 10:00h às 12:00h (Meio da Manhã)</span>
                         </label>
                     </div>
@@ -419,22 +418,22 @@
                     
                     <div class="radio-group">
                         <label class="radio-item">
-                            <input type="radio" name="acompanhantes" value="1 pessoa" required>
+                            <input type="radio" name="acompanhantes" value="1" required>
                             <span>👤 Apenas eu (1 pessoa)</span>
                         </label>
                         
                         <label class="radio-item">
-                            <input type="radio" name="acompanhantes" value="2 pessoas" required>
+                            <input type="radio" name="acompanhantes" value="2" required>
                             <span>👥 2 pessoas</span>
                         </label>
                         
                         <label class="radio-item">
-                            <input type="radio" name="acompanhantes" value="3 pessoas" required>
+                            <input type="radio" name="acompanhantes" value="3" required>
                             <span>👥👤 3 pessoas</span>
                         </label>
                         
                         <label class="radio-item">
-                            <input type="radio" name="acompanhantes" value="4 pessoas" required>
+                            <input type="radio" name="acompanhantes" value="4" required>
                             <span>👥👥 4 pessoas (limite máximo)</span>
                         </label>
                     </div>
@@ -451,35 +450,37 @@
 
                 <div class="section">
                     <div style="display: flex; align-items: flex-start; gap: 15px;">
-                        <input type="checkbox" id="confirmacao" name="confirmacao" value="Confirmado" required style="margin-top: 4px; scale: 1.3;">
+                        <input type="checkbox" id="confirmacao" name="confirmacao" required style="margin-top: 4px; scale: 1.3;">
                         <label for="confirmacao" style="flex: 1;">
                             <strong>Confirmação:</strong> Ao marcar esta opção, confirmo minha presença no evento de entrega de chaves e declaro ter ciência de todas as condições e requisitos apresentados neste formulário.
                         </label>
                     </div>
                 </div>
 
-                <!-- Campo oculto com timestamp -->
-                <input type="hidden" name="dataConfirmacao" id="dataConfirmacao">
-                <input type="hidden" name="_subject" value="Nova Confirmação - Entrega de Chaves Belvedere">
-
                 <button type="submit" class="btn-submit" id="submitBtn">
                     <div class="loading" id="loading"></div>
                     <span id="btnText">🔑 Confirmar Presença</span>
                 </button>
-            </form>
 
-            <div id="confirmationMessage" class="confirmation-message">
-                <h3>Confirmação Enviada com Sucesso!</h3>
-                <p>Obrigado por confirmar sua presença. Aguardamos você no dia 30 de agosto para a entrega das chaves do seu novo lar no Belvedere Condomínio Clube!</p>
-                <p><strong>Seus dados foram registrados com sucesso!</strong></p>
-                <div style="margin-top: 15px; padding: 15px; background: white; border-radius: 10px;">
-                    📧 Você receberá um email de confirmação em breve.
+                <div id="confirmationMessage" class="confirmation-message">
+                    <h3>Confirmação Enviada com Sucesso!</h3>
+                    <p>Obrigado por confirmar sua presença. Aguardamos você no dia 30 de agosto para a entrega das chaves do seu novo lar no Belvedere Condomínio Clube!</p>
+                    <p><strong>Anote seus dados:</strong></p>
+                    <div id="dadosConfirmacao"></div>
                 </div>
-            </div>
+
+                <div id="errorMessage" class="error-message">
+                    <h3>Erro ao Enviar Confirmação</h3>
+                    <p id="errorText">Ocorreu um erro ao enviar sua confirmação. Por favor, tente novamente ou entre em contato conosco.</p>
+                </div>
+            </form>
         </div>
     </div>
 
     <script>
+        // URL ATUALIZADA DO GOOGLE APPS SCRIPT
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwLrvzVZfhitTTl3i_483pm6fXWaR1z8L8PsrAXob6ANV1Y239WcrgrJ1AF3g3Hwr8q7Q/exec';
+
         // Máscara para CPF
         document.getElementById('cpf').addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');
@@ -501,56 +502,135 @@
         });
 
         // Submissão do formulário
-        document.getElementById('keyDeliveryForm').addEventListener('submit', function(e) {
+        document.getElementById('keyDeliveryForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const submitBtn = document.getElementById('submitBtn');
             const loading = document.getElementById('loading');
             const btnText = document.getElementById('btnText');
-            
-            // Adiciona timestamp
-            document.getElementById('dataConfirmacao').value = new Date().toLocaleString('pt-BR');
+            const confirmationMessage = document.getElementById('confirmationMessage');
+            const errorMessage = document.getElementById('errorMessage');
             
             // Mostra loading
             submitBtn.disabled = true;
             loading.style.display = 'inline-block';
             btnText.textContent = 'Enviando...';
             
-            // Coleta dados para exibir
-            const formData = new FormData(this);
-            const dados = Object.fromEntries(formData);
+            // Esconde mensagens anteriores
+            confirmationMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
             
-            // Envia o formulário usando fetch
-            fetch(this.action, {
-                method: 'POST',
-                body: new FormData(this),
-                headers: {
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => {
-                if (response.ok) {
-                    // Sucesso - mostra confirmação
-                    this.style.display = 'none';
-                    document.getElementById('confirmationMessage').style.display = 'block';
+            try {
+                // Coleta dados do formulário
+                const formData = new FormData(this);
+                const dados = Object.fromEntries(formData);
+                
+                // Adiciona timestamp
+                dados.dataEnvio = new Date().toISOString();
+                
+                // Cria FormData para envio ao Google Apps Script
+                const submitData = new FormData();
+                Object.keys(dados).forEach(key => {
+                    submitData.append(key, dados[key]);
+                });
+                
+                console.log('Enviando dados para:', SCRIPT_URL);
+                console.log('Dados:', dados);
+                
+                // Envia dados para o Google Apps Script
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Importante para Google Apps Script
+                    body: submitData
+                });
+                
+                // Como usamos no-cors, não conseguimos ler a resposta
+                // Assumimos sucesso se não houver erro na requisição
+                console.log('Dados enviados com sucesso');
+                
+                // Mapeia os valores para exibição
+                const horarioMap = {
+                    'manha': '08:00h às 10:00h',
+                    'meio-dia': '10:00h às 12:00h'
+                };
+                
+                // Monta resumo dos dados
+                const resumo = `
+                    <div style="text-align: left; background: white; padding: 20px; border-radius: 10px; margin-top: 15px;">
+                        <strong>Nome:</strong> ${dados.nomeCompleto}<br>
+                        <strong>CPF:</strong> ${dados.cpf}<br>
+                        <strong>Apartamento:</strong> ${dados.apartamento} - Bloco ${dados.bloco}<br>
+                        <strong>Horário escolhido:</strong> ${horarioMap[dados.horario]}<br>
+                        <strong>Número de pessoas:</strong> ${dados.acompanhantes} pessoa(s)<br>
+                        <strong>Confirmado em:</strong> ${new Date().toLocaleString('pt-BR')}
+                    </div>
+                `;
+                
+                document.getElementById('dadosConfirmacao').innerHTML = resumo;
+                
+                // Oculta formulário e mostra confirmação
+                this.style.display = 'none';
+                confirmationMessage.style.display = 'block';
+                
+                // Scroll suave para a mensagem de confirmação
+                confirmationMessage.scrollIntoView({
+                    behavior: 'smooth'
+                });
+                
+            } catch (error) {
+                console.error('Erro ao enviar:', error);
+                
+                // Tenta enviar novamente com método alternativo
+                try {
+                    console.log('Tentando método alternativo...');
                     
-                    document.getElementById('confirmationMessage').scrollIntoView({
-                        behavior: 'smooth'
+                    // Converte dados para query string
+                    const params = new URLSearchParams();
+                    Object.keys(dados).forEach(key => {
+                        params.append(key, dados[key]);
                     });
-                } else {
-                    throw new Error('Erro no envio');
+                    
+                    // Tenta GET request como alternativa
+                    await fetch(SCRIPT_URL + '?' + params.toString(), {
+                        method: 'GET',
+                        mode: 'no-cors'
+                    });
+                    
+                    // Se chegou até aqui, assume sucesso
+                    const horarioMap = {
+                        'manha': '08:00h às 10:00h',
+                        'meio-dia': '10:00h às 12:00h'
+                    };
+                    
+                    const resumo = `
+                        <div style="text-align: left; background: white; padding: 20px; border-radius: 10px; margin-top: 15px;">
+                            <strong>Nome:</strong> ${dados.nomeCompleto}<br>
+                            <strong>CPF:</strong> ${dados.cpf}<br>
+                            <strong>Apartamento:</strong> ${dados.apartamento} - Bloco ${dados.bloco}<br>
+                            <strong>Horário escolhido:</strong> ${horarioMap[dados.horario]}<br>
+                            <strong>Número de pessoas:</strong> ${dados.acompanhantes} pessoa(s)<br>
+                            <strong>Confirmado em:</strong> ${new Date().toLocaleString('pt-BR')}
+                        </div>
+                    `;
+                    
+                    document.getElementById('dadosConfirmacao').innerHTML = resumo;
+                    this.style.display = 'none';
+                    confirmationMessage.style.display = 'block';
+                    confirmationMessage.scrollIntoView({ behavior: 'smooth' });
+                    
+                } catch (secondError) {
+                    console.error('Erro no método alternativo:', secondError);
+                    document.getElementById('errorText').textContent = 
+                        'Erro de conexão. Verifique sua internet e tente novamente. Se o problema persistir, entre em contato conosco.';
+                    errorMessage.style.display = 'block';
+                    errorMessage.scrollIntoView({ behavior: 'smooth' });
                 }
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-                alert('Erro ao enviar confirmação. Por favor, tente novamente.');
-            })
-            .finally(() => {
+            } finally {
                 // Remove loading
                 submitBtn.disabled = false;
                 loading.style.display = 'none';
                 btnText.textContent = '🔑 Confirmar Presença';
-            });
+            }
         });
 
         // Validação em tempo real
@@ -563,6 +643,21 @@
                 }
             });
         });
+
+        // Validação de CPF básica
+        document.getElementById('cpf').addEventListener('blur', function() {
+            const cpf = this.value.replace(/\D/g, '');
+            if (cpf.length !== 11) {
+                this.style.borderColor = '#e74c3c';
+                this.title = 'CPF deve ter 11 dígitos';
+            } else {
+                this.style.borderColor = '#6ECC01';
+                this.title = '';
+            }
+        });
+
+        // Log para debug
+        console.log('Formulário carregado. URL do script:', SCRIPT_URL);
     </script>
 </body>
 </html>
