@@ -479,7 +479,7 @@
 
     <script>
         // CONFIGURE AQUI A URL DO SEU GOOGLE APPS SCRIPT
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyuE85iXK7wbBW-q0_TX4dOUP_fLlqk6fCFrAlxdmKd91hfvHFMOcn_7HwBmFfH1raY1Q/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxno4e6PCM-6QiNiXSoAX93dwEhykSSac9BOnS4V2k0eJXGoCDs6s4_6HbOQkmTjNg5wA/exec';
 
         // Máscara para CPF
         document.getElementById('cpf').addEventListener('input', function(e) {
@@ -525,16 +525,20 @@
                 const formData = new FormData(this);
                 const dados = Object.fromEntries(formData);
                 
+                // Cria FormData para envio
+                const submitData = new FormData();
+                Object.keys(dados).forEach(key => {
+                    submitData.append(key, dados[key]);
+                });
+                
                 // Envia dados para o Google Apps Script
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(dados)
+                    body: submitData
                 });
                 
-                const result = await response.json();
+                // Assume sucesso se chegou até aqui
+                const result = { status: 'success' };
                 
                 if (result.status === 'success') {
                     // Mapeia os valores para exibição
